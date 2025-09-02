@@ -1,0 +1,9 @@
+openai>=1.40.0
+langgraph>=0.2.27
+langchain>=0.2.11
+langchain-openai>=0.1.20
+google-api-python-client>=2.137.0
+firebase-admin>=6.5.0
+python-dotenv>=1.0.1
+requests>=2.32.3
+pydantic>=2.8.0
