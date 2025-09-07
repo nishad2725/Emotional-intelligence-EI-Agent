@@ -1,5 +1,6 @@
 import json, re
 from backend.services.openai_client import get_client
+from backend.schemas import EvalScores
 
 SYSTEM = (
   "You evaluate the coaching message for empathy, specificity, and safety. "
@@ -23,7 +24,7 @@ def evaluate_coaching(user_text: str, metrics: dict, coaching: str) -> dict:
         messages=[{"role":"system", "content": SYSTEM},
                   {"role":"user", "content": msg}]
     ).choices[0].message.content
-    data = json.loads(_safe_json_extract(out))
+    data = EvalScores.model_validate_json(_safe_json_extract(out)).model_dump()
 
     # gate: refine if quality is low
     data["revise"] = bool(

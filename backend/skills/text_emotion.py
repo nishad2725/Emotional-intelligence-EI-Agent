@@ -1,6 +1,7 @@
 import json, re
 from typing import Dict, Any
 from backend.services.openai_client import get_client
+from backend.schemas import EmotionMetrics
 
 SYSTEM = (
     "You analyze emotional tone in a user's text. "
@@ -27,4 +28,5 @@ def analyze_text_emotion(text: str) -> Dict[str, Any]:
                   {"role": "user", "content": text}]
     )
     content = resp.choices[0].message.content
-    return json.loads(_safe_json_extract(content))
+    metrics = EmotionMetrics.model_validate_json(_safe_json_extract(content))
+    return metrics.model_dump()

@@ -17,4 +17,5 @@ def db():
 def log_session_entry(entry: dict):
     ref = db().collection("sessions").document()
     ref.set({"created_at": firestore.SERVER_TIMESTAMP})
+    entry["created_at"] = firestore.SERVER_TIMESTAMP   # timestamp per entry
     ref.collection("entries").add(entry)
