@@ -1,11 +1,10 @@
 """
 Memory skill — builds a concise emotional-history context string from past sessions.
 
-Short-term: current session conversation turns (passed in by the graph).
-Long-term:  last N Firestore session entries for this user, summarised by Claude Haiku
-            to keep the prompt lean.
+Uses gpt-4o-mini to summarise the last N session entries into a 2-3 sentence
+context that gets passed to the coach for personalised responses.
 """
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_FAST
 
 _SUMMARISE_SYSTEM = (
     "You are a memory assistant for an EI coaching app. "
@@ -25,26 +24,18 @@ def _format_entries(entries: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def build_memory_context(user_id: str, recent_entries: list[dict]) -> str:
-    """
-    Returns a brief natural-language summary of the user's emotional history.
-    Falls back to a formatted list if no entries are available.
-
-    Args:
-        user_id: Not used for the LLM call but kept for future caching/logging.
-        recent_entries: List of session entry dicts loaded from Firebase.
-    """
+def build_memory_context(_user_id: str, recent_entries: list[dict]) -> str:
     if not recent_entries:
         return ""
 
     formatted = _format_entries(recent_entries)
-
     client = get_client()
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=200,
+    response = client.chat.completions.create(
+        model=MODEL_FAST,
         temperature=0.1,
-        system=_SUMMARISE_SYSTEM,
-        messages=[{"role": "user", "content": formatted}],
+        messages=[
+            {"role": "system", "content": _SUMMARISE_SYSTEM},
+            {"role": "user", "content": formatted},
+        ],
     )
-    return response.content[0].text.strip()
+    return response.choices[0].message.content.strip()

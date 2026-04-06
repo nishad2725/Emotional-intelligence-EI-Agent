@@ -1,14 +1,14 @@
 """
 Pattern skill — identifies cross-session emotional patterns for a user.
 
-Loads a longer history window (up to 30 sessions) and asks Claude to surface:
+Loads a longer history window (up to 30 sessions) and asks the model to surface:
   - recurring emotion clusters
   - apparent triggers
   - valence trend (improving / stable / declining)
   - one long-term recommendation
 """
 import re
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 from backend.schemas import PatternInsight
 
 _SYSTEM = (
@@ -42,19 +42,12 @@ def _format_history(entries: list[dict]) -> str:
         coaching = (e.get("coaching") or "")[:60]
         lines.append(
             f"{i}. \"{preview}\" | emotions={emotions} | valence={valence:.2f} | arousal={arousal:.2f}"
-            + (f" | coaching given: \"{coaching}\"" if coaching else "")
+            + (f" | coaching: \"{coaching}\"" if coaching else "")
         )
     return "\n".join(lines)
 
 
 def analyze_patterns(user_id: str, history_entries: list[dict]) -> PatternInsight:
-    """
-    Analyse cross-session history and return a PatternInsight.
-
-    Args:
-        user_id: Used to populate the returned model.
-        history_entries: Up to 30 session entry dicts from Firebase.
-    """
     if not history_entries:
         return PatternInsight(
             user_id=user_id,
@@ -64,15 +57,15 @@ def analyze_patterns(user_id: str, history_entries: list[dict]) -> PatternInsigh
             recommendation="Keep checking in — more sessions will reveal your patterns.",
         )
 
-    formatted = _format_history(history_entries)
     client = get_client()
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=512,
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
         temperature=0.3,
-        system=_SYSTEM,
-        messages=[{"role": "user", "content": formatted}],
+        messages=[
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user", "content": _format_history(history_entries)},
+        ],
     )
-    data = PatternInsight.model_validate_json(_extract_json(response.content[0].text))
+    data = PatternInsight.model_validate_json(_extract_json(response.choices[0].message.content))
     data.user_id = user_id
     return data

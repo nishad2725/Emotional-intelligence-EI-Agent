@@ -1,5 +1,5 @@
 import re
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 from backend.schemas import EvalScores
 
 SYSTEM = (
@@ -26,15 +26,15 @@ def _extract_json(s: str) -> str:
 def evaluate_coaching(user_text: str, metrics: dict, coaching: str) -> dict:
     client = get_client()
     msg = f"User message: {user_text}\nContext metrics: {metrics}\nCoaching response: {coaching}"
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
         temperature=0.0,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": msg}],
+        messages=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": msg},
+        ],
     )
-    data = EvalScores.model_validate_json(_extract_json(response.content[0].text)).model_dump()
-    # Enforce gate logic in case model's revise flag is inconsistent
+    data = EvalScores.model_validate_json(_extract_json(response.choices[0].message.content)).model_dump()
     data["revise"] = bool(
         data.get("empathy", 0) < 0.75
         or data.get("specificity", 0) < 0.70

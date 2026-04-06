@@ -1,4 +1,4 @@
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 
 SYSTEM = (
     "You are a warm, expert Emotional Intelligence coach. "
@@ -37,13 +37,12 @@ def coach_user(
     if memory_context:
         context_parts.append(f"Emotional history context:\n{memory_context}")
 
-    user_message = "\n".join(context_parts)
-
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
         temperature=0.5,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": user_message}],
+        messages=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": "\n".join(context_parts)},
+        ],
     )
-    return response.content[0].text.strip()
+    return response.choices[0].message.content.strip()

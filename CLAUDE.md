@@ -1,12 +1,12 @@
 # EI Assistant — CLAUDE.md
 
-Emotional Intelligence AI Agent. Analyzes text and voice input for emotional content, delivers personalized coaching, tracks patterns over time, and adapts to each user. Built with Claude (Anthropic SDK) + LangGraph.
+Emotional Intelligence AI Agent. Analyzes text and voice input for emotional content, delivers personalized coaching, tracks patterns over time, and adapts to each user. Built with OpenAI GPT-4o-mini + LangGraph.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| LLM | Claude claude-sonnet-4-6 (Anthropic SDK) |
+| LLM | GPT-4o-mini (OpenAI API) |
 | Orchestration | LangGraph state graphs |
 | Safety Screening | Google Perspective API |
 | Persistence | Firebase Firestore |
@@ -37,11 +37,11 @@ python -m backend.cli --profile               # show stored profile
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `ANTHROPIC_API_KEY` | Yes | Claude API (all LLM calls) |
+| `OPENAI_API_KEY` | Yes | GPT-4o-mini (all LLM calls) |
 | `GOOGLE_PERSPECTIVE_API_KEY` | Yes | Toxicity scoring |
 | `FIREBASE_PROJECT_ID` | Yes | Session persistence |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Yes | Path to Firebase service account JSON |
-| `HUME_API_KEY` | No | Voice emotion analysis (Phase 2) |
+| `HUME_API_KEY` | No | Voice prosody analysis (optional) |
 
 ## Architecture
 
@@ -108,7 +108,7 @@ backend/
 │   ├── personalization.py   # User profile CRUD
 │   └── voice_emotion.py     # Audio transcription + voice prosody pipeline
 ├── services/
-│   ├── anthropic_client.py  # Anthropic SDK singleton
+│   ├── anthropic_client.py  # OpenAI client singleton (name kept for import compat)
 │   ├── perspective.py       # Google Perspective API toxicity
 │   ├── firebase.py          # Firestore: sessions + user profiles
 │   └── hume_voice.py        # Hume Expression Measurement (audio prosody)
@@ -151,34 +151,36 @@ users/{user_id}/
 
 Skill template:
 ```python
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 
 SYSTEM = "Your system prompt."
 
 def your_skill(input_text: str) -> str:
     client = get_client()
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=512,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": input_text}]
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
+        temperature=0.3,
+        messages=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": input_text},
+        ],
     )
-    return response.content[0].text.strip()
+    return response.choices[0].message.content.strip()
 ```
 
-## Claude Model Usage
+## Model Usage
+
+All LLM calls use OpenAI. Change `MODEL_MAIN` / `MODEL_FAST` in `backend/services/anthropic_client.py` to switch globally.
 
 | Task | Model | Temperature |
 |------|-------|-------------|
-| Emotion analysis | claude-sonnet-4-6 | 0.2 |
-| Safety classification | claude-sonnet-4-6 | 0.0 |
-| Coaching response | claude-sonnet-4-6 | 0.5 |
-| Coaching evaluation | claude-sonnet-4-6 | 0.0 |
-| Pattern recognition | claude-sonnet-4-6 | 0.3 |
-| Journal prompt | claude-sonnet-4-6 | 0.6 |
-| Memory summarization | claude-haiku-4-5-20251001 | 0.1 |
-
-Use `claude-sonnet-4-6` as default. Use `claude-haiku-4-5-20251001` for fast/cheap helper calls (memory summarization, profile updates). Reserve `claude-opus-4-6` for complex reasoning tasks if needed.
+| Emotion analysis | gpt-4o-mini | 0.2 |
+| Safety classification | gpt-4o-mini | 0.0 |
+| Coaching response | gpt-4o-mini | 0.5 |
+| Coaching evaluation | gpt-4o-mini | 0.0 |
+| Pattern recognition | gpt-4o-mini | 0.3 |
+| Journal prompt | gpt-4o-mini | 0.6 |
+| Memory summarization | gpt-4o-mini | 0.1 |
 
 ## Quality Gates
 

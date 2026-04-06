@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Any
 
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 from backend.schemas import EmotionMetrics
 
 SYSTEM = (
@@ -27,13 +27,14 @@ def _extract_json(s: str) -> str:
 
 def analyze_text_emotion(text: str) -> Dict[str, Any]:
     client = get_client()
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
         temperature=0.2,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": text}],
+        messages=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": text},
+        ],
     )
-    content = response.content[0].text
+    content = response.choices[0].message.content
     metrics = EmotionMetrics.model_validate_json(_extract_json(content))
     return metrics.model_dump()

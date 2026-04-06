@@ -5,7 +5,7 @@ The prompt is grounded in the user's current emotion and, optionally, their
 emotional history context so the question feels relevant rather than generic.
 """
 import re
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 from backend.schemas import JournalPrompt
 
 _SYSTEM = (
@@ -35,14 +35,6 @@ def generate_journal_prompt(
     emotion_json: dict,
     memory_context: str | None = None,
 ) -> JournalPrompt:
-    """
-    Generate a reflective journal prompt tailored to the user's current emotion.
-
-    Args:
-        user_text: What the user just shared.
-        emotion_json: EmotionMetrics dict from the analyze node.
-        memory_context: Optional summary of past sessions for added context.
-    """
     client = get_client()
 
     emotions = emotion_json.get("primary_emotions", [])
@@ -56,11 +48,12 @@ def generate_journal_prompt(
     if memory_context:
         parts.append(f"Emotional history:\n{memory_context}")
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
         temperature=0.6,
-        system=_SYSTEM,
-        messages=[{"role": "user", "content": "\n".join(parts)}],
+        messages=[
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user", "content": "\n".join(parts)},
+        ],
     )
-    return JournalPrompt.model_validate_json(_extract_json(response.content[0].text))
+    return JournalPrompt.model_validate_json(_extract_json(response.choices[0].message.content))

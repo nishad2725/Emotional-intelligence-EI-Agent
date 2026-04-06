@@ -1,6 +1,6 @@
 import json
 import re
-from backend.services.anthropic_client import get_client
+from backend.services.anthropic_client import get_client, MODEL_MAIN
 from backend.schemas import SafetyLabel
 
 SYSTEM = (
@@ -33,14 +33,15 @@ def _extract_json(s: str) -> str:
 
 def check_safety(user_text: str) -> SafetyLabel:
     client = get_client()
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
+    response = client.chat.completions.create(
+        model=MODEL_MAIN,
         temperature=0.0,
-        system=SYSTEM,
-        messages=[{"role": "user", "content": user_text}],
+        messages=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": user_text},
+        ],
     )
-    data = json.loads(_extract_json(response.content[0].text))
+    data = json.loads(_extract_json(response.choices[0].message.content))
     if data.get("is_critical") and not data.get("crisis_message"):
         data["crisis_message"] = _DEFAULT_CRISIS
     return SafetyLabel(**data)
