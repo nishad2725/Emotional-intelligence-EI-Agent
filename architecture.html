@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EI Assistant — Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(135deg, #161b22 0%, #1a1f2e 100%);
+    border-bottom: 1px solid #30363d;
+    padding: 36px 48px;
+  }
+  header h1 { font-size: 2rem; font-weight: 700; color: #f0f6fc; }
+  header p  { color: #8b949e; margin-top: 6px; font-size: 1rem; }
+  header .badges { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    color: #8b949e;
+  }
+  .badge span { color: #58a6ff; font-weight: 600; }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 40px 32px; }
+
+  section { margin-bottom: 64px; }
+  section h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #f0f6fc;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section h2 .num {
+    background: #e94560;
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  section .desc {
+    color: #8b949e;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+    max-width: 720px;
+  }
+
+  .diagram-wrap {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow-x: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+
+  /* Legend */
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 24px;
+  }
+  .legend-item {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .legend-item .label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    margin-bottom: 6px;
+  }
+  .legend-item .title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #f0f6fc;
+    margin-bottom: 4px;
+  }
+  .legend-item .detail {
+    font-size: 0.8rem;
+    color: #8b949e;
+  }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .dot-blue   { background: #1f6feb; }
+  .dot-green  { background: #238636; }
+  .dot-red    { background: #da3633; }
+  .dot-purple { background: #8957e5; }
+  .dot-orange { background: #d29922; }
+  .dot-teal   { background: #138a8a; }
+
+  /* State table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th {
+    background: #21262d;
+    color: #8b949e;
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #30363d;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #21262d;
+    vertical-align: top;
+  }
+  td code {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.82rem;
+    color: #79c0ff;
+  }
+  tr:hover td { background: #161b22; }
+  .tag {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .tag-node  { background: #0d419d; color: #79c0ff; }
+  .tag-skill { background: #1a3d1a; color: #56d364; }
+  .tag-svc   { background: #3d1a0d; color: #ffa657; }
+
+  footer {
+    text-align: center;
+    color: #484f58;
+    font-size: 0.8rem;
+    padding: 32px;
+    border-top: 1px solid #21262d;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 EI Assistant — System Architecture</h1>
+  <p>Emotional Intelligence AI Agent · Complete workflow and component reference</p>
+  <div class="badges">
+    <div class="badge">LLM <span>GPT-4o-mini</span></div>
+    <div class="badge">Orchestration <span>LangGraph</span></div>
+    <div class="badge">UI <span>Streamlit</span></div>
+    <div class="badge">Persistence <span>Firebase Firestore</span></div>
+    <div class="badge">Safety <span>Google Perspective API</span></div>
+    <div class="badge">Voice <span>SpeechRecognition + Hume AI</span></div>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 1 — System Overview                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">1</span> System Overview</h2>
+  <p class="desc">
+    High-level view of how user input flows through the two LangGraph agents,
+    which external services are called, and what the user sees as output.
+  </p>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#1f6feb', 'primaryTextColor': '#e6edf3', 'primaryBorderColor': '#388bfd', 'lineColor': '#8b949e', 'secondaryColor': '#21262d', 'tertiaryColor': '#161b22', 'background': '#0d1117', 'nodeBorder': '#30363d', 'clusterBkg': '#161b22', 'clusterBorder': '#30363d', 'titleColor': '#f0f6fc', 'edgeLabelBackground': '#161b22', 'fontFamily': 'Segoe UI, system-ui, sans-serif'}}}%%
+flowchart TD
+    USER(["👤 User"])
+
+    subgraph INPUT["Input Layer"]
+        direction LR
+        TEXT["💬 Text\nStreamlit text tab"]
+        VOICE_FILE["🎙️ Voice File\nWAV · MP3 · M4A"]
+    end
+
+    subgraph VOICE_PRE["Voice Pre-processing  ·  voice_emotion.py"]
+        direction LR
+        SR["SpeechRecognition\nGoogle Free API\n↓ transcription text"]
+        HUME_P["Hume AI Prosody\n(optional)\n↓ top-5 voice emotions"]
+    end
+
+    subgraph EIGRAPH["⚙️  ei_graph  ·  Main Agent  ·  9 nodes"]
+        direction TB
+        N1["load_profile"] --> N2["load_memory"] --> N3["analyze"] --> N4["safety"]
+        N4 -->|"🚨 critical"| N9["persist"]
+        N4 -->|"✅ normal"| N5["coach"]
+        N5 --> N6["evaluate"] --> N7["refine"] --> N8["journal"] --> N9
+    end
+
+    subgraph PGRAPH["📈  pattern_graph  ·  On-Demand Agent  ·  3 nodes"]
+        direction LR
+        P1["load_history"] --> P2["analyze_patterns"] --> P3["persist_insight"]
+    end
+
+    subgraph SERVICES["External Services"]
+        direction TB
+        OPENAI["🤖 OpenAI\nGPT-4o-mini\nAll LLM calls"]
+        FIREBASE["🔥 Firebase\nFirestore\nUser data"]
+        PERSP["🛡️ Perspective\nAPI\nToxicity"]
+        HUME_SVC["🎵 Hume AI\nProsody\n(optional)"]
+    end
+
+    subgraph OUTPUT["Output — Streamlit UI"]
+        direction LR
+        O1["Coaching\nResponse"]
+        O2["Emotion\nMetrics"]
+        O3["Journal\nPrompt"]
+        O4["Quality\nScores"]
+        O5["Voice\nProsody"]
+    end
+
+    USER --> TEXT & VOICE_FILE
+    VOICE_FILE --> VOICE_PRE
+    VOICE_PRE --> |"transcribed text"| EIGRAPH
+    TEXT --> EIGRAPH
+    EIGRAPH --> OUTPUT
+    PGRAPH --> OUTPUT
+
+    EIGRAPH <--> OPENAI
+    EIGRAPH <--> FIREBASE
+    EIGRAPH <--> PERSP
+    PGRAPH <--> OPENAI
+    PGRAPH <--> FIREBASE
+    HUME_P <--> HUME_SVC
+
+    style EIGRAPH fill:#0d1117,stroke:#1f6feb,stroke-width:2px
+    style PGRAPH fill:#0d1117,stroke:#238636,stroke-width:2px
+    style VOICE_PRE fill:#0d1117,stroke:#8957e5,stroke-width:1px
+    style INPUT fill:#0d1117,stroke:#30363d
+    style SERVICES fill:#0d1117,stroke:#30363d
+    style OUTPUT fill:#0d1117,stroke:#d29922,stroke-width:1px
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 2 — Main Graph Detailed                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">2</span> Main Agent — ei_graph (9 Nodes)</h2>
+  <p class="desc">
+    Every user message passes through all 9 nodes in sequence.
+    The <strong>safety node</strong> is the only branching point — critical messages skip coaching
+    and go straight to persist. The <strong>evaluate → refine</strong> loop auto-improves low-quality responses.
+  </p>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#1f6feb', 'primaryTextColor': '#e6edf3', 'primaryBorderColor': '#388bfd', 'lineColor': '#8b949e', 'secondaryColor': '#21262d', 'tertiaryColor': '#161b22', 'background': '#0d1117', 'edgeLabelBackground': '#161b22', 'fontFamily': 'Segoe UI, system-ui, sans-serif'}}}%%
+flowchart TD
+    START(["▶ START\nEIState{user_id, user_text, session_id}"])
+
+    subgraph LP_BOX["Node 1 — load_profile"]
+        LP["personalization.get_or_create_profile()\n📂 Reads: Firebase users/{id}/profile\n📦 Adds to state: user_profile"]
+    end
+
+    subgraph LM_BOX["Node 2 — load_memory"]
+        LM["memory.build_memory_context()\n📂 Reads: last 5 sessions from Firebase\n🤖 GPT-4o-mini: summarises history → 2-3 sentences\n📦 Adds to state: memory_context"]
+    end
+
+    subgraph AN_BOX["Node 3 — analyze"]
+        AN_EM["text_emotion.analyze_text_emotion()\n🤖 GPT-4o-mini (temp 0.2)\n→ valence, arousal, primary_emotions, confidence"]
+        AN_TX["perspective.toxicity_score()\n🛡️ Google Perspective API\n→ toxicity float 0–1"]
+        AN_EM ~~~ AN_TX
+        AN_BOX_OUT["📦 Adds: emotion{}, toxicity"]
+    end
+
+    subgraph SF_BOX["Node 4 — safety"]
+        SF["safety.check_safety()\n🤖 GPT-4o-mini (temp 0.0)\n→ SafetyLabel{is_critical, category, crisis_message}\nCategories: self-harm · suicide · violence · medical\n📦 Adds: safety{}, is_critical"]
+    end
+
+    ROUTE{{"🔀 Route on\nis_critical?"}}
+
+    CRISIS["Pre-fill coaching\nwith crisis_message\n+ hotline resources"]
+
+    subgraph CH_BOX["Node 5 — coach"]
+        CH["coach.coach_user()\n🤖 GPT-4o-mini (temp 0.5)\nContext passed in:\n  • user_text\n  • emotion metrics\n  • toxicity score\n  • user_profile (name, triggers, techniques)\n  • memory_context (past sessions)\nOutput: 3-line personalised coaching\n📦 Adds: coaching"]
+    end
+
+    subgraph EV_BOX["Node 6 — evaluate"]
+        EV["evaluator.evaluate_coaching()\n🤖 GPT-4o-mini (temp 0.0)\nScores: empathy · specificity · safety\nGate: revise=True if\n  empathy < 0.75 OR\n  specificity < 0.70 OR\n  safety < 0.95\n📦 Adds: eval{empathy, specificity, safety, revise, critique}"]
+    end
+
+    subgraph RF_BOX["Node 7 — refine"]
+        RF_Q{{"eval.revise?"}}
+        RF_YES["coach.coach_user() again\n🤖 GPT-4o-mini\nWith same full context\n→ replaces coaching in state"]
+        RF_NO["Pass-through\n(no change)"]
+        RF_Q -->|"True"| RF_YES
+        RF_Q -->|"False"| RF_NO
+    end
+
+    subgraph JN_BOX["Node 8 — journal"]
+        JN["journal.generate_journal_prompt()\n🤖 GPT-4o-mini (temp 0.6)\nInputs: user_text + emotion + memory_context\n→ 1 open-ended question\n→ suggested duration: 3/5/10/15 min\n📦 Adds: journal_prompt"]
+    end
+
+    subgraph PS_BOX["Node 9 — persist"]
+        PS_LOG["firebase.log_session_entry()\n🔥 Writes to:\n  users/{id}/sessions/{sid}/entries/{eid}"]
+        PS_UPD["personalization.update_after_session()\n• total_sessions++\n• known_triggers updated\n• emotion_summary refreshed every 5 sessions\n  (GPT-4o-mini, temp 0.3)\n🔥 Writes: users/{id}/profile"]
+    end
+
+    END_NODE(["⏹ END\nFinal EIState returned to Streamlit"])
+
+    START --> LP_BOX --> LM_BOX --> AN_BOX --> SF_BOX --> ROUTE
+    ROUTE -->|"🚨 True"| CRISIS --> PS_BOX
+    ROUTE -->|"✅ False"| CH_BOX --> EV_BOX --> RF_BOX --> JN_BOX --> PS_BOX
+    PS_BOX --> END_NODE
+
+    style LP_BOX fill:#0d1117,stroke:#1f6feb,stroke-width:1.5px
+    style LM_BOX fill:#0d1117,stroke:#1f6feb,stroke-width:1.5px
+    style AN_BOX fill:#0d1117,stroke:#1f6feb,stroke-width:1.5px
+    style SF_BOX fill:#0d1117,stroke:#da3633,stroke-width:2px
+    style CH_BOX fill:#0d1117,stroke:#238636,stroke-width:1.5px
+    style EV_BOX fill:#0d1117,stroke:#8957e5,stroke-width:1.5px
+    style RF_BOX fill:#0d1117,stroke:#8957e5,stroke-width:1.5px
+    style JN_BOX fill:#0d1117,stroke:#d29922,stroke-width:1.5px
+    style PS_BOX fill:#0d1117,stroke:#138a8a,stroke-width:1.5px
+    style CRISIS fill:#3d0000,stroke:#da3633,stroke-width:2px,color:#ffaaaa
+    style START fill:#1f6feb,color:#fff
+    style END_NODE fill:#238636,color:#fff
+    style ROUTE fill:#21262d,stroke:#8b949e
+    </div>
+  </div>
+
+  <!-- Node legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-blue"></span> Personalisation</div>
+      <div class="title">load_profile</div>
+      <div class="detail">Reads Firebase, returns UserProfile with name, triggers, preferred techniques.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-blue"></span> Memory</div>
+      <div class="title">load_memory</div>
+      <div class="detail">Fetches last 5 sessions, uses GPT-4o-mini to compress into 2-3 sentences of context.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-blue"></span> Analysis</div>
+      <div class="title">analyze</div>
+      <div class="detail">Emotion extraction (GPT) + toxicity score (Perspective API) run in the same node.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-red"></span> Safety Gate</div>
+      <div class="title">safety</div>
+      <div class="detail">Only branching point. Critical → skip coaching, show crisis resources + hotlines.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-green"></span> Coaching</div>
+      <div class="title">coach</div>
+      <div class="detail">Richest prompt in the graph. Receives profile + memory + emotion + toxicity for full context.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-purple"></span> Quality Gate</div>
+      <div class="title">evaluate → refine</div>
+      <div class="detail">Scores empathy/specificity/safety. One auto-refinement pass if any score is below threshold.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-orange"></span> Reflection</div>
+      <div class="title">journal</div>
+      <div class="detail">Generates a single open-ended journaling question personalised to the current emotion.</div>
+    </div>
+    <div class="legend-item">
+      <div class="label"><span class="dot dot-teal"></span> Persistence</div>
+      <div class="title">persist</div>
+      <div class="detail">Writes session entry to Firestore. Updates user profile stats and emotion summary.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 3 — Pattern Graph                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">3</span> Pattern Agent — pattern_graph (On Demand)</h2>
+  <p class="desc">
+    Triggered manually via the sidebar "Analyse My Patterns" button or CLI <code>--patterns</code> flag.
+    Loads up to 30 sessions and uses GPT-4o-mini to surface recurring patterns, triggers, trend direction, and a long-term recommendation.
+  </p>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#238636', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#0d1117', 'edgeLabelBackground': '#161b22', 'fontFamily': 'Segoe UI, system-ui, sans-serif'}}}%%
+flowchart LR
+    TRIGGER(["📈 Triggered by\nUser (Sidebar button\nor CLI --patterns)"])
+
+    subgraph LH_BOX["Node 1 — load_history"]
+        LH["firebase.get_history_entries(limit=30)\n📂 Collection-group query across all sessions\nfor this user_id\nOrdered by created_at DESC\n📦 Adds: history_entries (list of dicts)"]
+    end
+
+    subgraph AP_BOX["Node 2 — analyze_patterns"]
+        AP["pattern.analyze_patterns()\n🤖 GPT-4o-mini (temp 0.3)\nFormats each entry:\n  'said: \"...\" | emotions=[..] | valence=X | arousal=Y'\nAsks model to identify:\n  • patterns (recurring clusters)\n  • triggers (situational causes)\n  • trend: improving|stable|declining\n  • recommendation (1 long-term action)\n📦 Adds: insight (PatternInsight dict)"]
+    end
+
+    subgraph PI_BOX["Node 3 — persist_insight"]
+        PI["firebase.save_pattern_insight()\n🔥 Writes to:\n  users/{id}/patterns/{pid}\nIncludes generated_at timestamp"]
+    end
+
+    OUT_P(["📊 Displayed in\nStreamlit Sidebar"])
+
+    TRIGGER --> LH_BOX --> AP_BOX --> PI_BOX --> OUT_P
+
+    style LH_BOX fill:#0d1117,stroke:#238636,stroke-width:1.5px
+    style AP_BOX fill:#0d1117,stroke:#238636,stroke-width:1.5px
+    style PI_BOX fill:#0d1117,stroke:#138a8a,stroke-width:1.5px
+    style TRIGGER fill:#238636,color:#fff
+    style OUT_P fill:#d29922,color:#0d1117
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 4 — Voice Pipeline                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">4</span> Voice Emotion Pipeline</h2>
+  <p class="desc">
+    Voice input is pre-processed before entering the main graph.
+    Transcription is always attempted (no key needed). Hume prosody is additive —
+    coaching always uses the transcribed text; prosody scores are shown alongside it in the UI.
+  </p>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#8957e5', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#0d1117', 'edgeLabelBackground': '#161b22', 'fontFamily': 'Segoe UI, system-ui, sans-serif'}}}%%
+flowchart TD
+    UPLOAD(["🎙️ User uploads\nWAV · MP3 · M4A · OGG"])
+
+    subgraph CONVERT["Format Conversion (if needed)"]
+        PYDUB["pydub + ffmpeg\nConverts MP3/M4A → WAV\n(temp file, auto-deleted)"]
+    end
+
+    subgraph TRANSCRIPTION["Transcription  ·  speech_recognition"]
+        SR_NODE["sr.Recognizer()\n.adjust_for_ambient_noise()\n.recognize_google()\n🌐 Google Free Speech API\n(no API key required)"]
+        SR_OUT["→ transcription: str\n→ transcription_error: str | None"]
+    end
+
+    subgraph PROSODY["Voice Prosody  ·  hume_voice.py"]
+        HUME_CHECK{{"HUME_API_KEY\nset?"}}
+        HUME_CALL2["HumeBatchClient\n.submit_job()\n.await_complete()\n.get_predictions()\nAggregates ~50 emotion scores\nacross all time segments\n→ top-5 by average score"]
+        HUME_SKIP["Returns:\navailable: False\nerror: 'key not set'"]
+        HUME_CHECK -->|"Yes"| HUME_CALL2
+        HUME_CHECK -->|"No"| HUME_SKIP
+    end
+
+    MERGE["voice_emotion.analyze_voice()\nReturns:\n  transcription: str\n  voice_emotions: dict\n  transcription_error: str|None"]
+
+    EIGRAPH_IN(["→ ei_graph\nuser_text = transcription\n(full 9-node pipeline)"])
+
+    UI_OUT["Streamlit UI shows:\n  • 🗣️ Transcription preview\n  • Full coaching from graph\n  • 🎙️ Voice prosody bars (if Hume)"]
+
+    UPLOAD --> CONVERT --> TRANSCRIPTION & PROSODY --> MERGE
+    MERGE --> EIGRAPH_IN
+    MERGE --> UI_OUT
+
+    style CONVERT fill:#0d1117,stroke:#30363d
+    style TRANSCRIPTION fill:#0d1117,stroke:#8957e5,stroke-width:1.5px
+    style PROSODY fill:#0d1117,stroke:#8957e5,stroke-width:1.5px
+    style MERGE fill:#21262d,stroke:#8b949e
+    style UPLOAD fill:#8957e5,color:#fff
+    style EIGRAPH_IN fill:#1f6feb,color:#fff
+    style UI_OUT fill:#d29922,color:#0d1117
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TABLE — EIState Data Flow                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">5</span> EIState — Data Flow Through the Graph</h2>
+  <p class="desc">
+    The LangGraph state (<code>EIState</code>) is a TypedDict that accumulates data as each node runs.
+    Each node reads what it needs and writes back its output — the final state contains everything.
+  </p>
+  <div class="diagram-wrap" style="padding: 0; overflow: hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Type</th>
+          <th>Set by Node</th>
+          <th>Used by Node(s)</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>user_id</code></td>
+          <td>str</td>
+          <td>Input (app.py)</td>
+          <td>load_profile · load_memory · persist</td>
+          <td>Stable identifier derived from user's name (e.g. "john_doe")</td>
+        </tr>
+        <tr>
+          <td><code>user_name</code></td>
+          <td>str</td>
+          <td>Input (app.py)</td>
+          <td>load_profile · coach</td>
+          <td>Display name — used when creating a new profile</td>
+        </tr>
+        <tr>
+          <td><code>user_text</code></td>
+          <td>str</td>
+          <td>Input (app.py)</td>
+          <td>analyze · safety · coach · evaluate · refine · journal</td>
+          <td>The user's raw message (or voice transcription)</td>
+        </tr>
+        <tr>
+          <td><code>session_id</code></td>
+          <td>str</td>
+          <td>Input (app.py)</td>
+          <td>persist</td>
+          <td>UUID generated per browser session — groups entries in Firestore</td>
+        </tr>
+        <tr>
+          <td><code>user_profile</code></td>
+          <td>dict</td>
+          <td><span class="tag tag-node">load_profile</span></td>
+          <td>coach · persist</td>
+          <td>UserProfile: name, known_triggers, preferred_techniques, emotion_summary</td>
+        </tr>
+        <tr>
+          <td><code>memory_context</code></td>
+          <td>str</td>
+          <td><span class="tag tag-node">load_memory</span></td>
+          <td>coach · journal</td>
+          <td>2-3 sentence GPT summary of last 5 sessions' emotions and patterns</td>
+        </tr>
+        <tr>
+          <td><code>emotion</code></td>
+          <td>dict</td>
+          <td><span class="tag tag-node">analyze</span></td>
+          <td>safety · coach · evaluate · refine · journal · persist</td>
+          <td>EmotionMetrics: valence(-1→1), arousal(0→1), primary_emotions[], confidence, rationale</td>
+        </tr>
+        <tr>
+          <td><code>toxicity</code></td>
+          <td>float|None</td>
+          <td><span class="tag tag-node">analyze</span></td>
+          <td>coach · evaluate · persist</td>
+          <td>Google Perspective API score 0–1. None if API unavailable.</td>
+        </tr>
+        <tr>
+          <td><code>safety</code></td>
+          <td>dict</td>
+          <td><span class="tag tag-node">safety</span></td>
+          <td>persist</td>
+          <td>SafetyLabel: is_critical, category, confidence, reason, crisis_message</td>
+        </tr>
+        <tr>
+          <td><code>is_critical</code></td>
+          <td>bool</td>
+          <td><span class="tag tag-node">safety</span></td>
+          <td>Router (conditional edge)</td>
+          <td>True → skip coaching, show crisis message, go straight to persist</td>
+        </tr>
+        <tr>
+          <td><code>coaching</code></td>
+          <td>str</td>
+          <td><span class="tag tag-node">coach</span> / <span class="tag tag-node">refine</span></td>
+          <td>evaluate · refine · persist · UI</td>
+          <td>3-line personalised coaching response (may be replaced by refine node)</td>
+        </tr>
+        <tr>
+          <td><code>eval</code></td>
+          <td>dict</td>
+          <td><span class="tag tag-node">evaluate</span></td>
+          <td>refine · persist · UI</td>
+          <td>EvalScores: empathy, specificity, safety (each 0–1), revise (bool), critique (str)</td>
+        </tr>
+        <tr>
+          <td><code>journal_prompt</code></td>
+          <td>dict|None</td>
+          <td><span class="tag tag-node">journal</span></td>
+          <td>persist · UI</td>
+          <td>JournalPrompt: prompt (question), emotion_context, suggested_duration_minutes</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TABLE — Skills Reference                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">6</span> Skills & Services Reference</h2>
+  <p class="desc">
+    Every skill is a pure Python function — no class, no state. They receive typed inputs and return
+    typed outputs. All LLM calls go through <code>backend/services/anthropic_client.py</code> (OpenAI singleton).
+  </p>
+  <div class="diagram-wrap" style="padding: 0; overflow: hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Function</th>
+          <th>Model / Service</th>
+          <th>Temp</th>
+          <th>Input → Output</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>skills/text_emotion.py</code></td>
+          <td><code>analyze_text_emotion()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.2</td>
+          <td>text → EmotionMetrics dict</td>
+        </tr>
+        <tr>
+          <td><code>skills/safety.py</code></td>
+          <td><code>check_safety()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.0</td>
+          <td>text → SafetyLabel</td>
+        </tr>
+        <tr>
+          <td><code>skills/coach.py</code></td>
+          <td><code>coach_user()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.5</td>
+          <td>text + emotion + toxicity + profile + memory → coaching str</td>
+        </tr>
+        <tr>
+          <td><code>skills/evaluator.py</code></td>
+          <td><code>evaluate_coaching()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.0</td>
+          <td>text + metrics + coaching → EvalScores dict</td>
+        </tr>
+        <tr>
+          <td><code>skills/journal.py</code></td>
+          <td><code>generate_journal_prompt()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.6</td>
+          <td>text + emotion + memory → JournalPrompt</td>
+        </tr>
+        <tr>
+          <td><code>skills/memory.py</code></td>
+          <td><code>build_memory_context()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.1</td>
+          <td>list[session_entry] → context str (2-3 sentences)</td>
+        </tr>
+        <tr>
+          <td><code>skills/pattern.py</code></td>
+          <td><code>analyze_patterns()</code></td>
+          <td><span class="tag tag-skill">GPT-4o-mini</span></td>
+          <td>0.3</td>
+          <td>list[session_entry] (up to 30) → PatternInsight</td>
+        </tr>
+        <tr>
+          <td><code>skills/personalization.py</code></td>
+          <td><code>get_or_create_profile()</code><br><code>update_after_session()</code></td>
+          <td><span class="tag tag-svc">Firebase + GPT-4o-mini</span></td>
+          <td>0.3</td>
+          <td>user_id → UserProfile; emotion → updated UserProfile</td>
+        </tr>
+        <tr>
+          <td><code>skills/voice_emotion.py</code></td>
+          <td><code>analyze_voice()</code><br><code>transcribe_audio()</code></td>
+          <td><span class="tag tag-svc">SpeechRecognition + Hume</span></td>
+          <td>—</td>
+          <td>audio path → {transcription, voice_emotions, error}</td>
+        </tr>
+        <tr>
+          <td><code>services/perspective.py</code></td>
+          <td><code>toxicity_score()</code></td>
+          <td><span class="tag tag-svc">Perspective API</span></td>
+          <td>—</td>
+          <td>text → float 0–1 (or None)</td>
+        </tr>
+        <tr>
+          <td><code>services/firebase.py</code></td>
+          <td><code>log_session_entry()</code><br><code>get_recent_entries()</code><br><code>get_user_profile()</code><br><code>save_user_profile()</code><br><code>save_pattern_insight()</code></td>
+          <td><span class="tag tag-svc">Firebase Firestore</span></td>
+          <td>—</td>
+          <td>Read/write user-scoped Firestore collections</td>
+        </tr>
+        <tr>
+          <td><code>services/hume_voice.py</code></td>
+          <td><code>analyze_audio_prosody()</code></td>
+          <td><span class="tag tag-svc">Hume AI (optional)</span></td>
+          <td>—</td>
+          <td>audio path → {available, top_emotions[], all_emotions{}, error}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 5 — Firebase Schema                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section>
+  <h2><span class="num">7</span> Firebase Firestore Schema</h2>
+  <p class="desc">
+    All data is scoped under <code>users/{user_id}</code> — one Firestore document tree per user.
+  </p>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#138a8a', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#0d1117', 'edgeLabelBackground': '#161b22', 'fontFamily': 'Segoe UI, system-ui, sans-serif'}}}%%
+flowchart LR
+    ROOT["🔥 Firestore\nRoot"]
+
+    subgraph USERS["Collection: users"]
+        USER_DOC["Document\nusers/{user_id}"]
+
+        subgraph PROFILE_C["Sub-collection: profile"]
+            PROFILE_DOC["Document: data\n─────────────────\nuser_id: str\nname: str\npreferred_techniques: list\nknown_triggers: list\nemotion_summary: str\ntotal_sessions: int\nlast_active: ISO datetime"]
+        end
+
+        subgraph SESSIONS_C["Sub-collection: sessions"]
+            SESSION_DOC["Document: {session_id}\n─────────────────\ncreated_at: timestamp"]
+            subgraph ENTRIES_C["Sub-collection: entries"]
+                ENTRY_DOC["Document: {auto_id}\n─────────────────\nuser_id: str\nuser_text: str\nemotion: EmotionMetrics\ntoxicity: float|null\nsafety: SafetyLabel\ncoaching: str\neval: EvalScores\njournal_prompt: JournalPrompt\ncreated_at: timestamp"]
+            end
+        end
+
+        subgraph PATTERNS_C["Sub-collection: patterns"]
+            PATTERN_DOC["Document: {auto_id}\n─────────────────\nuser_id: str\npatterns: list[str]\ntriggers: list[str]\ntrend: str\nrecommendation: str\ngenerated_at: ISO datetime\ncreated_at: timestamp"]
+        end
+    end
+
+    ROOT --> USERS
+    USER_DOC --> PROFILE_C
+    USER_DOC --> SESSIONS_C
+    USER_DOC --> PATTERNS_C
+    SESSION_DOC --> ENTRIES_C
+
+    style ROOT fill:#21262d,stroke:#30363d
+    style USERS fill:#0d1117,stroke:#138a8a,stroke-width:2px
+    style PROFILE_C fill:#0d1117,stroke:#1f6feb
+    style SESSIONS_C fill:#0d1117,stroke:#238636
+    style ENTRIES_C fill:#0d1117,stroke:#238636
+    style PATTERNS_C fill:#0d1117,stroke:#d29922
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  EI Assistant · Architecture v2 · GPT-4o-mini + LangGraph + Firebase + Streamlit
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { curve: 'basis', padding: 20, nodeSpacing: 50, rankSpacing: 60 }
+  });
+</script>
+</body>
+</html>
