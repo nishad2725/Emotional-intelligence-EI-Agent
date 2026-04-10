@@ -11,5 +11,5 @@ streamlit>=1.37.0
 # Voice analysis
 SpeechRecognition>=3.10.0
 pydub>=0.25.1
-# Optional: Hume AI voice emotion (requires HUME_API_KEY)
-# hume>=0.7.0
+# Hume AI voice emotion (requires HUME_API_KEY)
+hume>=0.7.0
